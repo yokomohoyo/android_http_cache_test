@@ -1,7 +1,9 @@
 package com.egov.httpcachetest;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
@@ -55,7 +57,6 @@ public class DefaultHttpClientFragment extends Activity {
                 }
             }
         });
-
     }
 
     public static void setResponseText(String s) {
@@ -114,8 +115,21 @@ public class DefaultHttpClientFragment extends Activity {
                     }
                 });
 
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (final Exception e) {
+                a.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        new AlertDialog.Builder(a)
+                                .setTitle("Error")
+                                .setMessage(e.getMessage())
+                                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // do nothing
+                                    }
+                                })
+                                .show();
+                    }
+                });
             } finally {
                 try {
                     baos.close();

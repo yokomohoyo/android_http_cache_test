@@ -10,8 +10,6 @@ import android.widget.Button;
 public class MainActivity extends Activity {
 
     public static final String USER_AGENT = "ACME test http client!";
-    private Button dhtc;
-    private Button htuc;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

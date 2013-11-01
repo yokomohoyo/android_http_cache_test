@@ -1,16 +1,23 @@
 package com.egov.httpcachetest;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -50,7 +57,6 @@ public class HttpUrlConnectFragment extends Activity {
                 }
             }
         });
-        setContentView(R.layout.main);
     }
 
     public static void setResponseText(String s) {
@@ -71,15 +77,22 @@ public class HttpUrlConnectFragment extends Activity {
 
             try {
                 URL url = new URL(URL);
-                if (url.getProtocol() == "http") {
+                Log.d(this.getClass().getCanonicalName(), "### PROTO = " + url.getProtocol());
+                if (url.getProtocol().equals("http")) {
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    final String content = conn.getContent().toString();
+                    InputStreamReader isr = new InputStreamReader((InputStream) conn.getContent());
+                    BufferedReader br = new BufferedReader(isr);
+                    String c = new String();
+                    String line;
+                    do {
+                        line = br.readLine();
+                        c += line + "\n";
+                    } while (line != null);
+                    final String content = c;
                     hMap = conn.getHeaderFields();
                     final int status = conn.getResponseCode();
-                    while (hMap.entrySet().iterator().hasNext()) {
-                        Map.Entry kp = (Map.Entry) hMap.entrySet().iterator().next();
-                        h += kp.getKey() + " : " + kp.getValue();
-                        hMap.entrySet().iterator().remove();
+                    for (Map.Entry<String, List<String>> kp : hMap.entrySet()) {
+                        h += kp.getKey() + " : " + kp.getValue() + "\n";
                     }
                     final String hs = h;
                     a.runOnUiThread(new Runnable() {
@@ -98,10 +111,51 @@ public class HttpUrlConnectFragment extends Activity {
 
                 } else {
                     HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+                    InputStreamReader isr = new InputStreamReader((InputStream) conn.getContent());
+                    BufferedReader br = new BufferedReader(isr);
+                    String c = new String();
+                    String line;
+                    do {
+                        line = br.readLine();
+                        c += line + "\n";
+                    } while (line != null);
+                    final String content = c;
+                    hMap = conn.getHeaderFields();
+                    final int status = conn.getResponseCode();
+                    for (Map.Entry<String, List<String>> kp : hMap.entrySet()) {
+                        h += kp.getKey() + " : " + kp.getValue() + "\n";
+                    }
+                    final String hs = h;
+                    a.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setResponseText("STATUS: " + status
+                                    + "\n\n HEADERS:\n"
+                                    + hs
+                                    + "\n\n CONTENT:\n"
+                                    + content
+                            );
+
+                        }
+                    });
+
                 }
 
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (final Exception e) {
+                a.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        new AlertDialog.Builder(a)
+                                .setTitle("Error")
+                                .setMessage(e.getMessage())
+                                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // do nothing
+                                    }
+                                })
+                                .show();
+                    }
+                });
             } finally {
                 try {
                     pd.dismiss();

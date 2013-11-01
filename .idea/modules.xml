@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/HttpCacheTest/HttpCacheTest.iml" filepath="$PROJECT_DIR$/HttpCacheTest/HttpCacheTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/HttpCacheTestProject.iml" filepath="$PROJECT_DIR$/HttpCacheTestProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android_http_cache_test.iml" filepath="$PROJECT_DIR$/android_http_cache_test.iml" />
     </modules>
   </component>
 </project>
