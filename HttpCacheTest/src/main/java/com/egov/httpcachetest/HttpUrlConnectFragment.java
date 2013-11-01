@@ -1,24 +1,20 @@
 package com.egov.httpcachetest;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.List;
+import java.util.Map;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import javax.net.ssl.HttpsURLConnection;
 
 public class HttpUrlConnectFragment extends Activity {
     private static String URL;
@@ -26,14 +22,12 @@ public class HttpUrlConnectFragment extends Activity {
     private static TextView response;
     private Button fetch;
     AsyncTask task;
+    ProgressDialog pd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.main);
-
-        task = new HttpUrlConnTestTask(this);
 
         checkUrl = (EditText) findViewById(R.id.check_url);
         response = (TextView) findViewById(R.id.response);
@@ -43,9 +37,15 @@ public class HttpUrlConnectFragment extends Activity {
             public void onClick(View view) {
                 switch(view.getId()) {
                     case R.id.fetch:
-                        Log.d(this.getClass().getCanonicalName(), "Getting it");
+                        response.setText("");
+                        task = new TestUrlTask(HttpUrlConnectFragment.this);
                         URL = checkUrl.getText().toString();
+                        pd = new ProgressDialog(HttpUrlConnectFragment.this);
+                        pd.setIndeterminate(true);
+                        pd.setMessage("Fetching...");
+                        pd.setCancelable(false);
                         task.execute(URL);
+                        pd.show();
                         break;
                 }
             }
@@ -53,56 +53,63 @@ public class HttpUrlConnectFragment extends Activity {
         setContentView(R.layout.main);
     }
 
-    public static void setBodyText(String s) {
+    public static void setResponseText(String s) {
         response.setText(s);
     }
 
-    public class HttpUrlConnTestTask extends AsyncTask<String, Void, String> {
+    public class TestUrlTask extends AsyncTask<Object, Void, Activity> {
+        private final HttpUrlConnectFragment a;
 
-        Activity a;
-
-        public HttpUrlConnTestTask(Activity a) {
+        public TestUrlTask(HttpUrlConnectFragment a) {
             this.a = a;
         }
+
         @Override
-        protected String doInBackground(String... params) {
-            HttpClient client = new DefaultHttpClient();
-
-            HttpGet hg = new HttpGet(URL);
-            hg.setHeader("User-Agent", MainActivity.USER_AGENT);
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            InputStream is = new ByteArrayInputStream(new byte[512]);
+        protected Activity doInBackground(Object... params) {
+            Map<String, List<String>> hMap;
+            String h = new String();
 
             try {
-                HttpResponse res = client.execute(hg);
-                StatusLine status = res.getStatusLine();
+                URL url = new URL(URL);
+                if (url.getProtocol() == "http") {
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    final String content = conn.getContent().toString();
+                    hMap = conn.getHeaderFields();
+                    final int status = conn.getResponseCode();
+                    while (hMap.entrySet().iterator().hasNext()) {
+                        Map.Entry kp = (Map.Entry) hMap.entrySet().iterator().next();
+                        h += kp.getKey() + " : " + kp.getValue();
+                        hMap.entrySet().iterator().remove();
+                    }
+                    final String hs = h;
+                    a.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setResponseText("STATUS: " + status
+                                    + "\n\n HEADERS:\n"
+                                    + hs
+                                    + "\n\n CONTENT:\n"
+                                    + content
+                            );
 
-                HttpEntity entity = res.getEntity();
-                is = entity.getContent();
+                        }
+                    });
 
-                int readBytes = 0;
-                byte[] buffer = new byte[512];
 
-                response.append("Content:\n\n");
-                while ((readBytes = is.read(buffer)) != -1) {
-                    baos.write(buffer, 0, readBytes);
+                } else {
+                    HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
                 }
-
-                System.out.println(response);
-                response.setText(new String(baos.toByteArray()));
 
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 try {
-                    baos.close();
-                    is.close();
+                    pd.dismiss();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-            return "ok";
+            return null;
         }
     }
 }
