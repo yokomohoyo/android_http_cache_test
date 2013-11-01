@@ -1,0 +1,33 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context=".MainActivity$PlaceholderFragment"
+    android:orientation="vertical">
+
+    <EditText
+        android:id="@+id/check_url"
+        android:hint="http://test.url/"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Fetch"
+        android:id="@+id/fetch"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+<ScrollView
+    android:layout_height="wrap_content"
+    android:layout_width="match_parent">
+    <TextView
+        android:id="@+id/response"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</ScrollView>
+</LinearLayout>
