@@ -4,10 +4,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.net.http.HttpResponseCache;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -21,6 +24,8 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class DefaultHttpClientFragment extends Activity {
@@ -30,6 +35,8 @@ public class DefaultHttpClientFragment extends Activity {
     private Button fetch;
     AsyncTask task;
     ProgressDialog pd;
+    CheckBox cb;
+    TextView cs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +45,8 @@ public class DefaultHttpClientFragment extends Activity {
 
         checkUrl = (EditText) findViewById(R.id.check_url);
         response = (TextView) findViewById(R.id.response);
+        cb = (CheckBox) findViewById(R.id.cache_cb);
+        cs = (TextView) findViewById(R.id.cache_status);
         fetch = (Button) findViewById(R.id.fetch);
         fetch.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -57,6 +66,54 @@ public class DefaultHttpClientFragment extends Activity {
                 }
             }
         });
+    }
+
+    /**
+     * Per the documentation doesn't work with this type of
+     * http client on android
+     *
+     * http://developer.android.com/reference/android/net/http/HttpResponseCache.html
+     */
+    private void enableCache() {
+        try {
+            File httpCacheDir = new File(DefaultHttpClientFragment.this.getCacheDir(), "http");
+            long httpCacheSize = 10 * 1024 * 1024; // 10 MiB
+            HttpResponseCache.install(httpCacheDir, httpCacheSize);
+        } catch (IOException e) {
+            Log.i(this.getClass().getCanonicalName(), "HTTP response cache installation failed:" + e);
+        }
+    }
+
+    private void setCacheStatus() {
+        cs.setText("");
+        if (cb.isChecked()) {
+            HttpResponseCache cache = HttpResponseCache.getInstalled();
+            cs.setText(
+                    "Requests:" +  cache.getRequestCount() +
+                            "\nHits: " + cache.getHitCount() +
+                            "\nMisses:" + cache.getNetworkCount()
+            );
+        }
+    }
+
+    private void disableCache() {
+        HttpResponseCache cache = HttpResponseCache.getInstalled();
+        if (cache != null) {
+            cache.flush();
+            try {
+                cache.delete();
+            } catch (Exception e) {
+                Log.d(this.getClass().getCanonicalName(), "Unable to remove cache");
+            }
+        }
+    }
+
+    public void handleCache(View v) {
+        if (cb.isChecked()) {
+            enableCache();
+        } else {
+            disableCache();
+        }
     }
 
     public static void setResponseText(String s) {
@@ -94,7 +151,7 @@ public class DefaultHttpClientFragment extends Activity {
                 }
 
                 Header[] h = res.getAllHeaders();
-                String ht = new String();
+                String ht = "";
                 for (Header k : h) {
                     ht += k.getName() + " : " + k.getValue() + "\n";
                 }
@@ -104,6 +161,7 @@ public class DefaultHttpClientFragment extends Activity {
                 a.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        setCacheStatus();
                         setResponseText("STATUS: " + status.getProtocolVersion()
                                 + "/" + status.getStatusCode()
                                 + "\n\n HEADERS:\n"
@@ -139,6 +197,7 @@ public class DefaultHttpClientFragment extends Activity {
                     e.printStackTrace();
                 }
             }
+
             return null;
         }
     }
